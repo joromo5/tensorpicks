@@ -28,9 +28,14 @@ class Settings(BaseSettings):
     outreach_sender_business: str = ""
     outreach_auto_send: bool = False
 
+    # Crypto Trader
+    crypto_paper_balance: float = 100.0
+    crypto_trading_mode: str = "paper"  # "paper" or "live"
+
     # Schedules (cron)
     business_finder_schedule: str = "0 8 * * *"  # 8am daily
     local_outreach_schedule: str = "0 9 * * 1"  # 9am every Monday
+    crypto_trader_schedule: str = "0 */4 * * *"  # every 4 hours
 
 
 settings = Settings()

@@ -9,6 +9,7 @@ from apscheduler.triggers.cron import CronTrigger
 from tensorpicks.core.config import settings
 from tensorpicks.agents.business_finder.agent import BusinessFinderAgent
 from tensorpicks.agents.local_outreach.agent import LocalOutreachAgent
+from tensorpicks.agents.crypto_trader.agent import CryptoTraderAgent
 
 logging.basicConfig(
     level=logging.INFO,
@@ -42,6 +43,11 @@ def main():
     scheduler.add_job(local_outreach.run, CronTrigger(**cron), id="local_outreach")
     log.info("Scheduled local_outreach: %s", settings.local_outreach_schedule)
 
+    crypto_trader = CryptoTraderAgent()
+    cron = _parse_cron(settings.crypto_trader_schedule)
+    scheduler.add_job(crypto_trader.run, CronTrigger(**cron), id="crypto_trader")
+    log.info("Scheduled crypto_trader: %s", settings.crypto_trader_schedule)
+
     try:
         scheduler.start()
     except (KeyboardInterrupt, SystemExit):
@@ -53,6 +59,7 @@ def _run_agent(name: str | None):
     agents = {
         "business_finder": BusinessFinderAgent,
         "local_outreach": LocalOutreachAgent,
+        "crypto_trader": CryptoTraderAgent,
     }
 
     if not name or name not in agents:
