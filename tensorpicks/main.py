@@ -8,6 +8,7 @@ from apscheduler.triggers.cron import CronTrigger
 
 from tensorpicks.core.config import settings
 from tensorpicks.agents.business_finder.agent import BusinessFinderAgent
+from tensorpicks.agents.local_outreach.agent import LocalOutreachAgent
 
 logging.basicConfig(
     level=logging.INFO,
@@ -36,9 +37,10 @@ def main():
     scheduler.add_job(business_finder.run, CronTrigger(**cron), id="business_finder")
     log.info("Scheduled business_finder: %s", settings.business_finder_schedule)
 
-    # Add more agents here as they're built:
-    # sports_model = SportsBettingAgent()
-    # scheduler.add_job(sports_model.run, CronTrigger(...), id="sports_model")
+    local_outreach = LocalOutreachAgent()
+    cron = _parse_cron(settings.local_outreach_schedule)
+    scheduler.add_job(local_outreach.run, CronTrigger(**cron), id="local_outreach")
+    log.info("Scheduled local_outreach: %s", settings.local_outreach_schedule)
 
     try:
         scheduler.start()
@@ -50,6 +52,7 @@ def _run_agent(name: str | None):
     """Run a single agent immediately."""
     agents = {
         "business_finder": BusinessFinderAgent,
+        "local_outreach": LocalOutreachAgent,
     }
 
     if not name or name not in agents:
