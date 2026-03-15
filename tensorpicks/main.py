@@ -12,6 +12,9 @@ from tensorpicks.agents.local_outreach.agent import LocalOutreachAgent
 from tensorpicks.agents.crypto_trader.agent import CryptoTraderAgent
 from tensorpicks.agents.content_creator.agent import ContentCreatorAgent
 from tensorpicks.agents.sports_bettor.agent import SportsBettorAgent
+from tensorpicks.agents.twitter_monetizer.agent import TwitterMonetizerAgent
+from tensorpicks.agents.youtube_sleep.agent import YouTubeSleepAgent
+from tensorpicks.agents.youtube_meditation.agent import YouTubeMeditationAgent
 
 logging.basicConfig(
     level=logging.INFO,
@@ -55,6 +58,21 @@ def main():
     scheduler.add_job(sports_bettor.run, CronTrigger(**cron), id="sports_bettor")
     log.info("Scheduled sports_bettor: %s", settings.sports_bettor_schedule)
 
+    twitter_monetizer = TwitterMonetizerAgent()
+    cron = _parse_cron(settings.twitter_monetizer_schedule)
+    scheduler.add_job(twitter_monetizer.run, CronTrigger(**cron), id="twitter_monetizer")
+    log.info("Scheduled twitter_monetizer: %s", settings.twitter_monetizer_schedule)
+
+    youtube_sleep = YouTubeSleepAgent()
+    cron = _parse_cron(settings.youtube_sleep_schedule)
+    scheduler.add_job(youtube_sleep.run, CronTrigger(**cron), id="youtube_sleep")
+    log.info("Scheduled youtube_sleep: %s", settings.youtube_sleep_schedule)
+
+    youtube_meditation = YouTubeMeditationAgent()
+    cron = _parse_cron(settings.youtube_meditation_schedule)
+    scheduler.add_job(youtube_meditation.run, CronTrigger(**cron), id="youtube_meditation")
+    log.info("Scheduled youtube_meditation: %s", settings.youtube_meditation_schedule)
+
     # Content Creator — runs via Slack listener, not cron.
     # Start the listener and schedule periodic queue processing.
     content_creator = ContentCreatorAgent()
@@ -77,6 +95,9 @@ def _run_agent(name: str | None):
         "crypto_trader": CryptoTraderAgent,
         "content_creator": ContentCreatorAgent,
         "sports_bettor": SportsBettorAgent,
+        "twitter_monetizer": TwitterMonetizerAgent,
+        "youtube_sleep": YouTubeSleepAgent,
+        "youtube_meditation": YouTubeMeditationAgent,
     }
 
     if not name or name not in agents:

@@ -47,11 +47,23 @@ class Settings(BaseSettings):
     sports_bettor_model_dir: str = "data/models"
     openweather_api_key: str = ""  # optional, for weather features
 
+    # Twitter Monetizer
+    twitter_monetizer_enabled: bool = False
+
+    # YouTube Sleep Channel
+    youtube_sleep_enabled: bool = False
+
+    # YouTube Meditation Channel
+    youtube_meditation_enabled: bool = False
+
     # Schedules (cron)
     business_finder_schedule: str = "0 8 * * *"  # 8am daily
     local_outreach_schedule: str = "0 9 * * 1"  # 9am every Monday
     crypto_trader_schedule: str = "0 */4 * * *"  # every 4 hours
     sports_bettor_schedule: str = "0 9 * * *"  # 9am daily
+    twitter_monetizer_schedule: str = "0 10,14,18 * * *"  # 10am, 2pm, 6pm
+    youtube_sleep_schedule: str = "0 6 * * 0"  # 6am every Sunday
+    youtube_meditation_schedule: str = "0 6 * * 3"  # 6am every Wednesday
 
 
 settings = Settings()
