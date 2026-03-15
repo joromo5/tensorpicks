@@ -7,9 +7,10 @@ from tensorpicks.core import llm
 
 log = logging.getLogger(__name__)
 
-PLAN_PROMPT = """You are a short-form video director. Given a story prompt, break it down
-into 4-6 scenes for a vertical (9:16) video. Each scene will be turned into a
-2-4 second AI-generated video clip and stitched together.
+PLAN_PROMPT = """You are a short-form video director specializing in fast-paced, attention-grabbing content.
+Given a story prompt, break it down into 15-20 scenes for a vertical (9:16) video.
+Each scene will be turned into a 1-2 second AI-generated video clip and stitched together.
+The pacing must be FAST — think TikTok energy. Every scene change keeps the viewer hooked.
 
 Story prompt:
 {prompt}
@@ -20,15 +21,19 @@ For each scene provide:
   lighting, camera angle, mood — be very specific). Always include "masterpiece,
   best quality, highly detailed" and the art style.
 - motion_prompt: Brief description of what motion/animation should happen
-  (camera pan, zoom, character movement, etc.)
-- narration: 1-2 sentences of voiceover narration for this scene
-- duration: seconds (2-4)
+  (camera pan, zoom, character movement, etc.) — keep it dynamic
+- narration: ONE short punchy sentence of voiceover narration for this scene
+- duration: seconds (1-2, keep it snappy)
 
 IMPORTANT:
+- 15-20 scenes minimum — fast cuts, never linger
 - Keep a consistent art style across all scenes
 - Keep character descriptions consistent (same clothing, hair, features)
-- Think cinematically — vary camera angles and shot types
-- The total video should be 15-30 seconds
+- Think cinematically — vary camera angles and shot types aggressively
+  (close-up, wide, bird's eye, low angle, dutch angle, over-the-shoulder)
+- Every scene should have visual contrast from the previous one
+- Build tension and momentum — hook in scene 1, escalate, payoff at the end
+- Total video should be 20-40 seconds
 
 Output ONLY valid JSON array. No markdown, no explanation.
 Example format:
@@ -36,9 +41,9 @@ Example format:
   {{
     "scene_number": 1,
     "image_prompt": "...",
-    "motion_prompt": "slow zoom in",
+    "motion_prompt": "quick zoom in",
     "narration": "...",
-    "duration": 3
+    "duration": 1
   }}
 ]"""
 
