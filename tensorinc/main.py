@@ -81,6 +81,10 @@ def main():
     scheduler.add_job(content_creator.run, "interval", seconds=10, id="content_creator")
     log.info("Content creator listener started")
 
+    # Slash command listener — handles /idea, etc.
+    from tensorinc.core.commands import start_command_listener
+    start_command_listener()
+
     try:
         scheduler.start()
     except (KeyboardInterrupt, SystemExit):
