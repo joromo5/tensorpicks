@@ -32,6 +32,13 @@ class Settings(BaseSettings):
     crypto_paper_balance: float = 100.0
     crypto_trading_mode: str = "paper"  # "paper" or "live"
 
+    # Content Creator
+    slack_app_token: str = ""  # xapp-... for Socket Mode listener
+    comfyui_url: str = "http://localhost:8188"
+    comfyui_checkpoint: str = "sd_xl_base_1.0.safetensors"
+    piper_voice_model: str = "en_US-lessac-medium"
+    musicgen_model: str = "facebook/musicgen-small"
+
     # Schedules (cron)
     business_finder_schedule: str = "0 8 * * *"  # 8am daily
     local_outreach_schedule: str = "0 9 * * 1"  # 9am every Monday
