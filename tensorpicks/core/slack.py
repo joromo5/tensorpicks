@@ -26,3 +26,6 @@ def post(text: str, channel: str | None = None, blocks: list | None = None) -> b
     except SlackApiError as e:
         log.error("Slack post failed: %s", e.response["error"])
         return False
+    except Exception as e:
+        log.error("Slack post failed (network): %s", e)
+        return False
