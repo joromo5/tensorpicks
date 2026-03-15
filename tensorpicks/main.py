@@ -11,6 +11,7 @@ from tensorpicks.agents.business_finder.agent import BusinessFinderAgent
 from tensorpicks.agents.local_outreach.agent import LocalOutreachAgent
 from tensorpicks.agents.crypto_trader.agent import CryptoTraderAgent
 from tensorpicks.agents.content_creator.agent import ContentCreatorAgent
+from tensorpicks.agents.sports_bettor.agent import SportsBettorAgent
 
 logging.basicConfig(
     level=logging.INFO,
@@ -49,6 +50,11 @@ def main():
     scheduler.add_job(crypto_trader.run, CronTrigger(**cron), id="crypto_trader")
     log.info("Scheduled crypto_trader: %s", settings.crypto_trader_schedule)
 
+    sports_bettor = SportsBettorAgent()
+    cron = _parse_cron(settings.sports_bettor_schedule)
+    scheduler.add_job(sports_bettor.run, CronTrigger(**cron), id="sports_bettor")
+    log.info("Scheduled sports_bettor: %s", settings.sports_bettor_schedule)
+
     # Content Creator — runs via Slack listener, not cron.
     # Start the listener and schedule periodic queue processing.
     content_creator = ContentCreatorAgent()
@@ -70,6 +76,7 @@ def _run_agent(name: str | None):
         "local_outreach": LocalOutreachAgent,
         "crypto_trader": CryptoTraderAgent,
         "content_creator": ContentCreatorAgent,
+        "sports_bettor": SportsBettorAgent,
     }
 
     if not name or name not in agents:
