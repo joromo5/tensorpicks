@@ -1,5 +1,5 @@
 [project]
-name = "tensorpicks"
+name = "tensorinc"
 version = "0.1.0"
 description = "Multi-agent business automation system powered by local LLMs"
 requires-python = ">=3.11"
@@ -27,7 +27,7 @@ dev = [
 ]
 
 [project.scripts]
-tensorpicks = "tensorpicks.main:main"
+tensorinc = "tensorinc.main:main"
 
 [tool.ruff]
 line-length = 100

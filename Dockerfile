@@ -8,4 +8,4 @@ RUN pip install --no-cache-dir .
 COPY . .
 RUN pip install --no-cache-dir -e .
 
-CMD ["tensorpicks"]
+CMD ["tensorinc"]
