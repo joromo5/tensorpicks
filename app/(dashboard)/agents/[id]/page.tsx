@@ -16,12 +16,26 @@ import {
   ChevronDown,
   ChevronUp,
   AlertTriangle,
+  MessageSquare,
+  Activity,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AgentMemoryPanel } from "@/components/agents/AgentMemoryPanel";
+import { AgentPerformancePanel } from "@/components/agents/AgentPerformancePanel";
 import { RunLogViewer } from "@/components/agents/RunLogViewer";
 import type { AgentResponse } from "@/components/agents/AgentCard";
+
+interface RunLog {
+  id: string;
+  status: "success" | "error" | "running" | "pending";
+  started_at: string;
+  finished_at: string | null;
+  duration_ms: number | null;
+  tokens_used: number | null;
+  output: string | null;
+  error_message: string | null;
+}
 
 function cronToHuman(cron: string): string {
   const parts = cron.trim().split(/\s+/);
@@ -58,8 +72,9 @@ export default function AgentDetailPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showSystemPrompt, setShowSystemPrompt] = useState(false);
   const [activeSection, setActiveSection] = useState<
-    "overview" | "memory" | "runs" | "config"
+    "overview" | "memory" | "performance" | "runs" | "config"
   >("overview");
+  const [lastRun, setLastRun] = useState<RunLog | null>(null);
 
   const fetchAgent = useCallback(async () => {
     try {
@@ -77,9 +92,26 @@ export default function AgentDetailPage() {
     }
   }, [agentId, getToken]);
 
+  const fetchLastRun = useCallback(async () => {
+    try {
+      const token = await getToken();
+      const response = await fetch(`/api/agents/${agentId}/runs`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      if (Array.isArray(data) && data.length > 0) {
+        setLastRun(data[0]);
+      }
+    } catch {
+      // Non-critical
+    }
+  }, [agentId, getToken]);
+
   useEffect(() => {
     fetchAgent();
-  }, [fetchAgent]);
+    fetchLastRun();
+  }, [fetchAgent, fetchLastRun]);
 
   async function handleRun() {
     setIsRunning(true);
@@ -166,9 +198,13 @@ export default function AgentDetailPage() {
     : "bg-zinc-500/15 text-zinc-400";
   const statusLabel = agent.is_active ? "Active" : "Paused";
 
+  // Type-safe to include output_channel if present
+  const agentAny = agent as AgentResponse & { output_channel?: string };
+
   const sections = [
     { key: "overview" as const, label: "Overview" },
     { key: "memory" as const, label: "Memory" },
+    { key: "performance" as const, label: "Performance" },
     { key: "runs" as const, label: "Run History" },
     { key: "config" as const, label: "Configuration" },
   ];
@@ -365,6 +401,57 @@ export default function AgentDetailPage() {
               )}
             </div>
           </div>
+
+          {/* Output Channel */}
+          {agentAny.output_channel && (
+            <div className="rounded-lg border border-border bg-card p-5">
+              <h3 className="flex items-center gap-2 text-sm font-semibold">
+                <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                Output Channel
+              </h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {agentAny.output_channel}
+              </p>
+            </div>
+          )}
+
+          {/* Last Run Output Preview */}
+          {lastRun && (
+            <div className="rounded-lg border border-border bg-card p-5">
+              <div className="flex items-center justify-between">
+                <h3 className="flex items-center gap-2 text-sm font-semibold">
+                  <Activity className="h-4 w-4 text-muted-foreground" />
+                  Last Run Output
+                </h3>
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
+                    lastRun.status === "success"
+                      ? "bg-emerald-500/15 text-emerald-500"
+                      : lastRun.status === "error"
+                        ? "bg-destructive/15 text-destructive"
+                        : lastRun.status === "running"
+                          ? "bg-amber-500/15 text-amber-500"
+                          : "bg-zinc-500/15 text-zinc-400"
+                  )}
+                >
+                  {lastRun.status}
+                </span>
+              </div>
+              <div className="mt-3 rounded-md bg-secondary/50 p-3">
+                <pre className="max-h-40 overflow-auto whitespace-pre-wrap text-xs leading-relaxed text-secondary-foreground">
+                  {lastRun.output ||
+                    lastRun.error_message ||
+                    "No output available"}
+                </pre>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {new Date(lastRun.started_at).toLocaleString()}
+                {lastRun.duration_ms !== null &&
+                  ` - ${lastRun.duration_ms < 1000 ? `${lastRun.duration_ms}ms` : `${(lastRun.duration_ms / 1000).toFixed(1)}s`}`}
+              </p>
+            </div>
+          )}
         </div>
       )}
 
@@ -374,6 +461,10 @@ export default function AgentDetailPage() {
           memory={agent.memory}
           updatedAt={agent.updated_at}
         />
+      )}
+
+      {activeSection === "performance" && (
+        <AgentPerformancePanel agentId={agentId} />
       )}
 
       {activeSection === "runs" && <RunLogViewer agentId={agentId} />}
