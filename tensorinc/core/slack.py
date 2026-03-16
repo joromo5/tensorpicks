@@ -24,8 +24,8 @@ def post(text: str, channel: str | None = None, blocks: list | None = None) -> b
         _get_client().chat_postMessage(channel=ch, text=text, blocks=blocks)
         return True
     except SlackApiError as e:
-        log.error("Slack post failed: %s", e.response["error"])
+        log.error("Slack post failed to channel '%s': %s", ch, e.response["error"])
         return False
     except Exception as e:
-        log.error("Slack post failed (network): %s", e)
+        log.error("Slack post failed to channel '%s' (network): %s", ch, e)
         return False

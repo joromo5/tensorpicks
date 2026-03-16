@@ -80,9 +80,9 @@ By status: {statuses}"""
 class BusinessFinderAgent(Agent):
     name = "business_finder"
 
-    def run(self) -> None:
+    def run(self, channel: str | None = None) -> None:
         self.log.info("Starting business finder scan...")
-        ch = settings.business_finder_channel
+        ch = channel or settings.business_finder_channel
 
         # 1. Check for trending opportunities
         trend_opps = self._check_trends()

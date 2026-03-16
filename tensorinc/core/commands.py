@@ -52,7 +52,7 @@ def start_command_listener():
             log.info("/idea triggered by user %s in %s", user, channel)
             # Run the business finder in a background thread so we don't block
             thread = threading.Thread(
-                target=_run_idea, args=(settings.business_finder_channel,), daemon=True
+                target=_run_idea, args=(channel,), daemon=True
             )
             thread.start()
 
@@ -70,9 +70,10 @@ def _run_idea(channel: str):
 
     try:
         agent = BusinessFinderAgent()
-        agent.run()
+        agent.run(channel=channel)
+        slack.post(":white_check_mark: Business finder scan complete.", channel=channel)
     except Exception as e:
-        log.error("/idea failed: %s", e)
+        log.error("/idea failed: %s", e, exc_info=True)
         slack.post(f":x: Business finder scan failed: {e}", channel=channel)
 
 

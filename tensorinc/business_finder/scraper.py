@@ -55,20 +55,21 @@ def fetch_all_sources() -> list[dict]:
     """
     all_posts = []
 
-    # Twitter
-    all_posts.extend(_fetch_twitter())
+    sources = {
+        "twitter": _fetch_twitter,
+        "hackernews": _fetch_hackernews,
+        "reddit": _fetch_reddit,
+        "producthunt": _fetch_producthunt,
+        "indiehackers": _fetch_indiehackers,
+    }
 
-    # Hacker News
-    all_posts.extend(_fetch_hackernews())
-
-    # Reddit
-    all_posts.extend(_fetch_reddit())
-
-    # Product Hunt
-    all_posts.extend(_fetch_producthunt())
-
-    # IndieHackers
-    all_posts.extend(_fetch_indiehackers())
+    for name, fetcher in sources.items():
+        try:
+            posts = fetcher()
+            log.info("Source %s returned %d posts", name, len(posts))
+            all_posts.extend(posts)
+        except Exception as e:
+            log.error("Source %s crashed: %s", name, e)
 
     # Deduplicate by text similarity (exact match on first 100 chars)
     seen = set()
