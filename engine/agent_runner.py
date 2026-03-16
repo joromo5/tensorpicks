@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import json
 import logging
 import time
 from typing import Any
@@ -11,7 +12,7 @@ from uuid import UUID
 from fastapi import HTTPException, status
 
 from engine import db
-from engine.key_vault import get_user_key
+from engine.key_vault import decrypt_key, get_user_key
 from engine.llm import run as llm_run
 from engine.memory import get_memory, update_memory
 from engine.plan_limits import check_run_limit
@@ -22,6 +23,83 @@ logger = logging.getLogger(__name__)
 
 # Maximum tool-call iterations per run to prevent runaway loops.
 MAX_TOOL_ITERATIONS: int = 10
+
+# Notification tool names
+_NOTIFICATION_TOOLS = {"telegram_notify", "slack_notify", "discord_notify"}
+
+# Mapping from output_channel name to platform key in bot_connections
+_CHANNEL_TO_PLATFORM = {
+    "telegram": "telegram",
+    "slack": "slack",
+    "discord": "discord",
+}
+
+
+async def _build_user_context(user_id: str, tool_names: list[str]) -> dict[str, Any]:
+    """Pre-decrypt bot tokens for notification tools the agent uses.
+
+    Returns a dict keyed by platform (telegram, slack, discord) with
+    the decrypted connection config for each.
+    """
+    needs_bots = bool(_NOTIFICATION_TOOLS & set(tool_names))
+    if not needs_bots:
+        return {}
+
+    try:
+        connections = await db.get_bot_connections(user_id)
+    except Exception:
+        logger.warning("Failed to fetch bot_connections for user %s", user_id)
+        return {}
+
+    ctx: dict[str, Any] = {}
+    for conn in connections:
+        platform = conn.get("platform", "")
+        config = conn.get("config") or {}
+
+        decrypted_config: dict[str, Any] = {}
+        for key, value in config.items():
+            # Attempt to decrypt values that look like Fernet tokens
+            if isinstance(value, str) and len(value) > 50 and value.startswith("gAAAAA"):
+                try:
+                    decrypted_config[key] = decrypt_key(value)
+                except Exception:
+                    decrypted_config[key] = value
+            else:
+                decrypted_config[key] = value
+
+        if platform in _CHANNEL_TO_PLATFORM:
+            ctx[platform] = decrypted_config
+
+    return ctx
+
+
+async def send_to_channel(
+    output_channel: str,
+    message: str,
+    user_context: dict[str, Any],
+) -> dict[str, Any] | None:
+    """Send the agent's final output to its configured output channel.
+
+    Returns the tool result dict, or None if no channel is configured.
+    """
+    if not output_channel or output_channel not in _CHANNEL_TO_PLATFORM:
+        return None
+
+    tool_name = f"{output_channel}_notify"
+    params = {"message": message}
+
+    result = await execute_tool(
+        tool_name, params, agent_config={}, user_context=user_context,
+    )
+
+    if "error" in result:
+        logger.warning(
+            "Auto-send to %s failed: %s", output_channel, result["error"],
+        )
+    else:
+        logger.info("Auto-sent output to %s", output_channel)
+
+    return result
 
 
 async def run_agent(agent_id: UUID, user_id: str) -> dict[str, Any]:
@@ -36,6 +114,7 @@ async def run_agent(agent_id: UUID, user_id: str) -> dict[str, Any]:
       6. Call the LLM (with tool loop).
       7. Persist output, update run_log (status=success|error).
       8. Trigger reflection if warranted.
+      9. Auto-send output to configured channel.
 
     Returns:
         The completed run_log record.
@@ -73,15 +152,21 @@ async def run_agent(agent_id: UUID, user_id: str) -> dict[str, Any]:
         provider = agent.get("llm_provider", "openai")
         api_key = await get_user_key(user_id, provider)
 
+        # Pre-decrypt bot tokens for notification tools
+        tool_names = agent.get("tools") or []
+        user_context = await _build_user_context(user_id, tool_names)
+
         # ── 5. Build context ──────────────────────────────────────────
         memory = await get_memory(agent_id, user_id)
         strategy = agent.get("strategy_notes") or ""
+
+        # Inject memory into agent_config so read_data can access it
+        agent_with_memory = {**agent, "memory": memory}
 
         system_prompt = agent["system_prompt"]
         if strategy:
             system_prompt += f"\n\n## Strategy Notes\n{strategy}"
         if memory:
-            import json
             system_prompt += f"\n\n## Memory\n{json.dumps(memory, indent=2)}"
 
         messages: list[dict[str, str]] = [
@@ -89,7 +174,7 @@ async def run_agent(agent_id: UUID, user_id: str) -> dict[str, Any]:
         ]
 
         # Build tool definitions from agent config
-        tool_defs = _build_tool_defs(agent.get("tools") or [])
+        tool_defs = _build_tool_defs(tool_names)
 
         # ── 6. LLM call + tool loop ──────────────────────────────────
         final_content = ""
@@ -115,7 +200,10 @@ async def run_agent(agent_id: UUID, user_id: str) -> dict[str, Any]:
             # Execute each tool call
             for tc in response.tool_calls:
                 tool_result = await execute_tool(
-                    tc["name"], tc["arguments"], agent_config=agent
+                    tc["name"],
+                    tc["arguments"],
+                    agent_config=agent_with_memory,
+                    user_context=user_context,
                 )
 
                 # If the tool stores data, persist to memory
@@ -124,6 +212,8 @@ async def run_agent(agent_id: UUID, user_id: str) -> dict[str, Any]:
                     value = tc["arguments"].get("value")
                     if key:
                         await update_memory(agent_id, user_id, {key: value})
+                        # Keep the in-memory copy fresh for subsequent read_data calls
+                        agent_with_memory.setdefault("memory", {})[key] = value
 
                 messages.append({
                     "role": "user",
@@ -153,6 +243,17 @@ async def run_agent(agent_id: UUID, user_id: str) -> dict[str, Any]:
                 await run_reflection(agent_id, user_id)
         except Exception:
             logger.exception("Reflection failed for agent %s (non-fatal)", agent_id)
+
+        # ── 9. Auto-send to output channel ────────────────────────────
+        output_channel = agent.get("output_channel", "")
+        if output_channel and final_content:
+            try:
+                await send_to_channel(output_channel, final_content, user_context)
+            except Exception:
+                logger.exception(
+                    "Auto-send to %s failed for agent %s (non-fatal)",
+                    output_channel, agent_id,
+                )
 
         return run_log
 
@@ -184,7 +285,11 @@ async def run_agent(agent_id: UUID, user_id: str) -> dict[str, Any]:
 
 
 def _build_tool_defs(tool_names: list[str]) -> list[dict[str, Any]]:
-    """Convert a list of tool names into LLM-compatible tool definitions."""
+    """Convert a list of tool names into LLM-compatible tool definitions.
+
+    Notification tools do NOT require chat_id/channel/webhook_url params —
+    the platform auto-resolves those from bot_connections.
+    """
     tool_schemas: dict[str, dict[str, Any]] = {
         "web_search": {
             "name": "web_search",
@@ -210,12 +315,12 @@ def _build_tool_defs(tool_names: list[str]) -> list[dict[str, Any]]:
         },
         "store_data": {
             "name": "store_data",
-            "description": "Store a key-value pair in agent memory",
+            "description": "Store a key-value pair in agent memory for later retrieval",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "key": {"type": "string"},
-                    "value": {"type": "string"},
+                    "key": {"type": "string", "description": "The key to store under"},
+                    "value": {"type": "string", "description": "The value to store"},
                 },
                 "required": ["key", "value"],
             },
@@ -226,45 +331,42 @@ def _build_tool_defs(tool_names: list[str]) -> list[dict[str, Any]]:
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "key": {"type": "string"},
+                    "key": {"type": "string", "description": "The key to read"},
                 },
                 "required": ["key"],
             },
         },
         "telegram_notify": {
             "name": "telegram_notify",
-            "description": "Send a Telegram notification",
+            "description": "Send a Telegram notification message",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "chat_id": {"type": "string"},
-                    "message": {"type": "string"},
+                    "message": {"type": "string", "description": "Message text to send"},
                 },
-                "required": ["chat_id", "message"],
+                "required": ["message"],
             },
         },
         "slack_notify": {
             "name": "slack_notify",
-            "description": "Send a Slack notification",
+            "description": "Send a Slack notification message",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "channel": {"type": "string"},
-                    "message": {"type": "string"},
+                    "message": {"type": "string", "description": "Message text to send"},
                 },
-                "required": ["channel", "message"],
+                "required": ["message"],
             },
         },
         "discord_notify": {
             "name": "discord_notify",
-            "description": "Send a Discord notification via webhook",
+            "description": "Send a Discord notification message",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "webhook_url": {"type": "string"},
-                    "message": {"type": "string"},
+                    "message": {"type": "string", "description": "Message text to send"},
                 },
-                "required": ["webhook_url", "message"],
+                "required": ["message"],
             },
         },
     }

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime as dt
 import logging
 from uuid import UUID
 
@@ -78,6 +79,16 @@ def register_agent(agent_id: UUID, user_id: str, cron_expr: str) -> None:
     )
     logger.info("Registered schedule for agent %s: %s", agent_id, cron_expr)
 
+    # Update next_run_at in the DB (fire-and-forget style)
+    import asyncio
+
+    try:
+        loop = asyncio.get_running_loop()
+        loop.create_task(_update_next_run_at(agent_id, user_id))
+    except RuntimeError:
+        # No running loop — skip async update
+        pass
+
 
 def unregister_agent(agent_id: UUID) -> None:
     """Remove the cron job for an agent."""
@@ -95,6 +106,94 @@ async def _scheduled_run(agent_id: UUID, user_id: str) -> None:
         await run_agent(agent_id, user_id)
     except Exception:
         logger.exception("Scheduled run failed for agent %s", agent_id)
+    finally:
+        # Update next_run_at after each scheduled run
+        try:
+            await _update_next_run_at(agent_id, user_id)
+        except Exception:
+            logger.warning("Failed to update next_run_at for agent %s", agent_id)
+
+
+# ── Next run tracking ────────────────────────────────────────────────
+
+
+async def _update_next_run_at(agent_id: UUID, user_id: str) -> None:
+    """Get the next fire time from APScheduler and persist it to the DB."""
+    from engine import db
+
+    scheduler = get_scheduler()
+    job_id = _job_id(agent_id)
+    job = scheduler.get_job(job_id)
+
+    if job is None:
+        return
+
+    next_fire = job.next_run_time
+    if next_fire is not None:
+        next_run_iso = next_fire.isoformat()
+    else:
+        next_run_iso = None
+
+    try:
+        await db.update_agent(agent_id, user_id, {"next_run_at": next_run_iso})
+        logger.debug(
+            "Updated next_run_at for agent %s: %s", agent_id, next_run_iso,
+        )
+    except Exception:
+        logger.warning("Failed to update next_run_at for agent %s", agent_id)
+
+
+async def update_next_run_at(agent_id: UUID, user_id: str) -> None:
+    """Public wrapper — update next_run_at for an agent in the DB."""
+    await _update_next_run_at(agent_id, user_id)
+
+
+# ── Rehydration ──────────────────────────────────────────────────────
+
+
+async def rehydrate_schedules() -> None:
+    """Re-register all active agents with schedules from the DB.
+
+    Called once at startup to restore cron jobs that were lost when the
+    process was last shut down.
+    """
+    from engine import db
+
+    client = db.get_client()
+
+    try:
+        resp = (
+            client.table("agents")
+            .select("id, user_id, schedule")
+            .eq("is_active", True)
+            .neq("schedule", "null")
+            .execute()
+        )
+        agents = resp.data or []
+    except Exception:
+        logger.exception("Failed to query agents for schedule rehydration")
+        return
+
+    restored = 0
+    for agent_row in agents:
+        schedule = agent_row.get("schedule")
+        if not schedule or not isinstance(schedule, str) or not schedule.strip():
+            continue
+
+        agent_id_str = agent_row["id"]
+        user_id = agent_row["user_id"]
+
+        try:
+            agent_id = UUID(agent_id_str)
+            register_agent(agent_id, user_id, schedule.strip())
+            restored += 1
+        except Exception:
+            logger.warning(
+                "Failed to rehydrate schedule for agent %s: %r",
+                agent_id_str, schedule,
+            )
+
+    logger.info("Rehydrated %d agent schedule(s) from the database", restored)
 
 
 # ── Cron parsing ──────────────────────────────────────────────────────

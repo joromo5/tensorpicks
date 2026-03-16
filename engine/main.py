@@ -9,7 +9,7 @@ from typing import AsyncIterator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from engine.agent_manager import shutdown_scheduler, start_scheduler
+from engine.agent_manager import rehydrate_schedules, shutdown_scheduler, start_scheduler
 from engine.config import settings
 from engine.routers import agents, keys, runs
 
@@ -28,7 +28,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     """Startup and shutdown hooks."""
     logger.info("Engine starting up")
     start_scheduler()
-    # TODO: re-register scheduled agents from DB on startup
+    await rehydrate_schedules()
     yield
     logger.info("Engine shutting down")
     shutdown_scheduler()
