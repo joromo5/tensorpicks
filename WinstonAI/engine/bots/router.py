@@ -21,7 +21,7 @@ async def send_output(user_id: str, channel: str, message: str) -> dict[str, Any
     """Route a message to the correct messaging platform.
 
     Args:
-        user_id: The TensorPicks user ID (clerk_user_id).
+        user_id: The WinstonAI user ID (clerk_user_id).
         channel: One of "telegram", "slack", "discord".
         message: The message text to send.
 

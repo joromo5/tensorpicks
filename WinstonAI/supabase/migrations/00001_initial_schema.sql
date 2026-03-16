@@ -1,5 +1,5 @@
 -- ============================================================================
--- TensorPicks SaaS Platform — Initial Schema
+-- WinstonAI SaaS Platform — Initial Schema
 -- ============================================================================
 -- Auth: Clerk (external). Supabase used as database only.
 -- RLS policies use a custom auth.uid() that reads the Clerk user ID from

@@ -1,4 +1,4 @@
-"""FastAPI application — entry point for the TensorPicks engine."""
+"""FastAPI application — entry point for the WinstonAI engine."""
 
 from __future__ import annotations
 
@@ -37,7 +37,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 # ── App ───────────────────────────────────────────────────────────────
 
 app = FastAPI(
-    title="TensorPicks Engine",
+    title="WinstonAI Engine",
     description="AI agent microservice — manages, schedules, and runs autonomous agents.",
     version="0.1.0",
     lifespan=lifespan,
@@ -68,4 +68,4 @@ app.include_router(runs.router)
 @app.get("/health", tags=["infra"])
 async def health_check():
     """Lightweight liveness probe."""
-    return {"status": "ok", "service": "tensorpicks-engine"}
+    return {"status": "ok", "service": "winstonai-engine"}

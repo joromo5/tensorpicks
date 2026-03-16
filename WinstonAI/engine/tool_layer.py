@@ -71,7 +71,7 @@ async def execute(
 # ── Shared helpers ────────────────────────────────────────────────────
 
 _USER_AGENT = (
-    "Mozilla/5.0 (compatible; TensorPicksBot/1.0; +https://tensorpicks.com)"
+    "Mozilla/5.0 (compatible; WinstonAIBot/1.0; +https://winstonai.com)"
 )
 
 

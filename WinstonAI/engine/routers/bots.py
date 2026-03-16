@@ -146,7 +146,7 @@ async def test_telegram(
     try:
         result = await telegram_bot.send_to_user(
             user_id,
-            "TensorPicks test message — your Telegram bot is working!",
+            "WinstonAI test message — your Telegram bot is working!",
         )
         return {"ok": True, "message": "Test message sent successfully", "result": result}
     except ValueError as exc:

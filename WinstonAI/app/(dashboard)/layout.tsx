@@ -55,7 +55,7 @@ export default function DashboardLayout({
         {/* Logo */}
         <div className="flex h-16 items-center justify-between border-b border-border px-6">
           <Link href="/dashboard" className="text-lg font-bold">
-            TensorPicks
+            WinstonAI
           </Link>
           <button
             onClick={() => setSidebarOpen(false)}
@@ -112,7 +112,7 @@ export default function DashboardLayout({
           >
             <Menu className="h-5 w-5" />
           </button>
-          <span className="ml-3 text-sm font-bold">TensorPicks</span>
+          <span className="ml-3 text-sm font-bold">WinstonAI</span>
         </header>
 
         <main className="flex-1 p-6">{children}</main>
