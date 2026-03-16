@@ -59,8 +59,10 @@ class SportsBettorAgent(Agent):
     def run(self) -> None:
         self.log.info("Starting sports bettor scan...")
 
+        ch = settings.sports_bettor_channel
+
         if not settings.the_odds_api_key:
-            slack.post(NO_API_KEY_MSG)
+            slack.post(NO_API_KEY_MSG, channel=ch)
             return
 
         # 1. Ingest historical data for training
@@ -81,7 +83,7 @@ class SportsBettorAgent(Agent):
         models = model.load_models()
         if not models:
             self.log.error("Failed to load models — aborting scan")
-            slack.post(":warning: Sports Bettor: Model loading failed")
+            slack.post(":warning: Sports Bettor: Model loading failed", channel=ch)
             return
 
         # 5. Settle any pending bets from previous runs
@@ -155,7 +157,8 @@ class SportsBettorAgent(Agent):
         if "error" in metrics:
             slack.post(
                 f":warning: Sports Bettor: Training failed — {metrics['error']} "
-                f"({metrics.get('samples', 0)} samples)"
+                f"({metrics.get('samples', 0)} samples)",
+                channel=settings.sports_bettor_channel,
             )
             return
 
@@ -164,7 +167,7 @@ class SportsBettorAgent(Agent):
             win_acc=metrics["win_prob"]["accuracy"],
             total_mae=metrics["total_points"]["mae"],
             spread_mae=metrics["spread"]["mae"],
-        ))
+        ), channel=settings.sports_bettor_channel)
 
     def _fetch_team_stats(self) -> dict:
         """Fetch team stats for all active sports."""
@@ -246,7 +249,7 @@ class SportsBettorAgent(Agent):
             bet_size=record["bet_size"],
             potential_profit=record["potential_profit"],
             sport=bet.get("sport", ""),
-        ))
+        ), channel=settings.sports_bettor_channel)
 
     def _settle_pending(self) -> int:
         """Settle pending bets using latest scores."""
@@ -270,7 +273,8 @@ class SportsBettorAgent(Agent):
             slack.post(
                 f"{emoji} *Bet #{bet['id']} settled: {bet['status'].upper()}*\n"
                 f"{bet['type'].upper()} — {bet['pick']}\n"
-                f"PnL: {pnl_str}"
+                f"PnL: {pnl_str}",
+                channel=settings.sports_bettor_channel,
             )
 
         return len(settled)
@@ -289,7 +293,7 @@ class SportsBettorAgent(Agent):
             stats=stats_str,
             bet_size=settings.sports_bettor_bet_size,
             min_ev=settings.sports_bettor_min_ev,
-        ))
+        ), channel=settings.sports_bettor_channel)
 
     def _ingest_new_data(self) -> None:
         """Ingest recently completed games for future model training."""

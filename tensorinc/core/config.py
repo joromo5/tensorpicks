@@ -39,6 +39,13 @@ class Settings(BaseSettings):
     piper_voice_model: str = "en_US-lessac-medium"
     musicgen_model: str = "facebook/musicgen-small"
 
+    # Agent Slack channels
+    sports_bettor_channel: str = "bets"
+    business_finder_channel: str = "general"
+    crypto_trader_channel: str = "general"
+    content_creator_channel: str = "general"
+    local_outreach_channel: str = "general"
+
     # Sports Bettor
     the_odds_api_key: str = ""
     sports_bettor_bet_size: float = 10.0
