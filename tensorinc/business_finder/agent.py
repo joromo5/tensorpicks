@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 
 from tensorinc.core.agent import Agent
 from tensorinc.core import llm, slack
+from tensorinc.core.config import settings
 from tensorinc.business_finder.scraper import fetch_all_sources
 from tensorinc.business_finder.scorer import score_batch
 from tensorinc.business_finder.database import (
@@ -81,6 +82,7 @@ class BusinessFinderAgent(Agent):
 
     def run(self) -> None:
         self.log.info("Starting business finder scan...")
+        ch = settings.business_finder_channel
 
         # 1. Check for trending opportunities
         trend_opps = self._check_trends()
@@ -89,7 +91,7 @@ class BusinessFinderAgent(Agent):
         posts = fetch_all_sources()
         if not posts:
             self.log.warning("No posts found — skipping")
-            slack.post(":warning: Business Finder: No posts found today. Check data sources.")
+            slack.post(":warning: Business Finder: No posts found today. Check data sources.", channel=ch)
             return
 
         self.log.info("Collected %d raw posts", len(posts))
@@ -98,7 +100,7 @@ class BusinessFinderAgent(Agent):
         scored = score_batch(posts, top_n=10)
         if not scored:
             self.log.warning("No ideas scored above threshold")
-            slack.post(":warning: Business Finder: No strong ideas found today.")
+            slack.post(":warning: Business Finder: No strong ideas found today.", channel=ch)
             return
 
         self.log.info("Scored %d ideas, top composite: %.1f",
@@ -122,15 +124,16 @@ class BusinessFinderAgent(Agent):
             validated=validated,
             total_scraped=len(posts),
             total_scored=len(scored),
+            channel=ch,
         )
 
         # 7. Post trend alerts
         for t in trend_opps[:2]:
-            self._post_trend_alert(t)
+            self._post_trend_alert(t, channel=ch)
 
         # 8. Sunday weekly digest
         if datetime.now(timezone.utc).weekday() == 6:
-            self._post_weekly_digest()
+            self._post_weekly_digest(channel=ch)
 
         self.log.info(
             "Business finder complete — %d scraped, %d scored, %d validated",
@@ -149,7 +152,7 @@ class BusinessFinderAgent(Agent):
             return []
 
     def _post_daily(self, validated: list[tuple], total_scraped: int,
-                    total_scored: int) -> None:
+                    total_scored: int, channel: str = "general") -> None:
         """Post the daily top picks to Slack."""
         date_str = datetime.now(timezone.utc).strftime("%B %d, %Y")
 
@@ -159,7 +162,7 @@ class BusinessFinderAgent(Agent):
             total_scored=total_scored,
             posted_count=len(validated),
         )
-        slack.post(header)
+        slack.post(header, channel=channel)
 
         for rank, (opp, validation) in enumerate(validated, 1):
             scores = opp.get("scores", {})
@@ -186,10 +189,10 @@ class BusinessFinderAgent(Agent):
                 engagement=opp.get("source_engagement", 0),
             )
 
-            slack.post(msg)
+            slack.post(msg, channel=channel)
             mark_posted(opp["id"])
 
-    def _post_trend_alert(self, trend: dict) -> None:
+    def _post_trend_alert(self, trend: dict, channel: str = "general") -> None:
         """Post a trending opportunity alert to Slack."""
         articles = trend.get("related_articles", [])
         articles_str = "\n".join(
@@ -201,9 +204,9 @@ class BusinessFinderAgent(Agent):
             signal=trend.get("signal", ""),
             traffic=trend.get("traffic", "?"),
             articles=articles_str,
-        ))
+        ), channel=channel)
 
-    def _post_weekly_digest(self) -> None:
+    def _post_weekly_digest(self, channel: str = "general") -> None:
         """Post a weekly digest of the best opportunities."""
         digest = get_weekly_digest()
         if not digest:
@@ -235,4 +238,4 @@ class BusinessFinderAgent(Agent):
             statuses=statuses,
         )
 
-        slack.post(msg)
+        slack.post(msg, channel=channel)

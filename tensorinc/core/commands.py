@@ -49,7 +49,7 @@ def start_command_listener():
             log.info("/idea triggered by user %s in %s", user, channel)
             # Run the business finder in a background thread so we don't block
             thread = threading.Thread(
-                target=_run_idea, args=(channel,), daemon=True
+                target=_run_idea, args=(settings.business_finder_channel,), daemon=True
             )
             thread.start()
 

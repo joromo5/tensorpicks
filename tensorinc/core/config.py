@@ -41,7 +41,7 @@ class Settings(BaseSettings):
 
     # Agent Slack channels
     sports_bettor_channel: str = "bets"
-    business_finder_channel: str = "general"
+    business_finder_channel: str = "ideation"
     crypto_trader_channel: str = "general"
     content_creator_channel: str = "general"
     local_outreach_channel: str = "general"
