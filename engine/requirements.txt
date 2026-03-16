@@ -10,3 +10,4 @@ python-jose[cryptography]>=3.3
 anthropic>=0.40
 openai>=1.50
 python-dotenv>=1.0
+stripe>=8.0

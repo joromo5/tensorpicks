@@ -31,6 +31,24 @@ class Settings(BaseSettings):
         description="Clerk JWT issuer URL (used to fetch JWKS)",
     )
 
+    # ── Stripe ─────────────────────────────────────────────────────────
+    STRIPE_SECRET_KEY: str = Field(
+        default="",
+        description="Stripe secret API key (sk_live_... or sk_test_...)",
+    )
+    STRIPE_WEBHOOK_SECRET: str = Field(
+        default="",
+        description="Stripe webhook signing secret (whsec_...)",
+    )
+    STRIPE_PRICE_IDS: dict[str, str] = Field(
+        default={
+            "starter": "price_starter_placeholder",
+            "pro": "price_pro_placeholder",
+            "agency": "price_agency_placeholder",
+        },
+        description="Mapping of plan names to Stripe Price IDs",
+    )
+
     # ── CORS ──────────────────────────────────────────────────────────
     CORS_ORIGINS: list[str] = Field(
         default=["http://localhost:3000"],

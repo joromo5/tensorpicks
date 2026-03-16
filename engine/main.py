@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from engine.agent_manager import rehydrate_schedules, shutdown_scheduler, start_scheduler
 from engine.config import settings
-from engine.routers import agents, bots, keys, runs
+from engine.routers import agents, billing, bots, keys, runs
 
 logging.basicConfig(
     level=logging.INFO,
@@ -56,6 +56,7 @@ app.add_middleware(
 # ── Routers ───────────────────────────────────────────────────────────
 
 app.include_router(agents.router)
+app.include_router(billing.router)
 app.include_router(bots.router)
 app.include_router(keys.router)
 app.include_router(runs.router)

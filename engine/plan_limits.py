@@ -17,6 +17,7 @@ PLAN_LIMITS: dict[str, PlanInfo] = {
     "free": PlanInfo(max_agents=2, max_runs_per_day=10),
     "starter": PlanInfo(max_agents=5, max_runs_per_day=50),
     "pro": PlanInfo(max_agents=20, max_runs_per_day=500),
+    "agency": PlanInfo(max_agents=100, max_runs_per_day=5000),
     "enterprise": PlanInfo(max_agents=100, max_runs_per_day=5000),
 }
 

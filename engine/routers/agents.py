@@ -14,6 +14,7 @@ from engine.key_vault import get_user_key
 from engine.llm import run as llm_run
 from engine.models import AgentCreate, AgentResponse, AgentUpdate
 from engine.plan_limits import check_agent_limit
+from engine.reflection import run_reflection
 from engine import db
 
 logger = logging.getLogger(__name__)
@@ -148,6 +149,34 @@ async def trigger_run(agent_id: UUID, user_id: str = Depends(get_current_user)):
     """Manually trigger an agent run."""
     result = await run_agent(agent_id, user_id)
     return result
+
+
+# ── POST /agents/{id}/reflect — manual reflection trigger ────────────
+
+
+@router.post("/{agent_id}/reflect")
+async def trigger_reflection(
+    agent_id: UUID, user_id: str = Depends(get_current_user)
+):
+    """Manually trigger a reflection cycle for the given agent.
+
+    Useful for testing and debugging the self-improvement loop.
+    """
+    agent = await db.get_agent(agent_id, user_id)
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    new_notes = await run_reflection(agent_id, user_id)
+    if new_notes is None:
+        return {
+            "reflected": False,
+            "message": "Reflection skipped — not enough data or missing LLM key.",
+        }
+
+    return {
+        "reflected": True,
+        "strategy_notes": new_notes,
+    }
 
 
 # ── Helpers ───────────────────────────────────────────────────────────
