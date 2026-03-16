@@ -188,7 +188,7 @@ export function AgentCreateFlow() {
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Example: Monitor UFC odds across major sportsbooks every morning. Alert me via Telegram when there's a line discrepancy of more than 5% on main card fights. Focus on underdogs with shifting lines."
+              placeholder="Example: Monitor competitor pricing every morning and alert me via Slack when prices change by more than 5%. Summarize weekly trends in a report and suggest optimal pricing adjustments."
               className="w-full resize-none rounded-md border border-border bg-background px-4 py-3 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               rows={6}
               maxLength={2000}

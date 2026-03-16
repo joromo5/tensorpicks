@@ -9,7 +9,7 @@ interface RequestOptions {
 }
 
 /**
- * API client for the Python trading engine.
+ * API client for the Python agent engine.
  * Handles JSON serialization and auth token forwarding.
  */
 export async function engineFetch<T = unknown>(

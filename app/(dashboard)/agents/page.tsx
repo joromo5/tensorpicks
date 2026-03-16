@@ -88,7 +88,7 @@ export default function AgentsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Agents</h1>
           <p className="text-muted-foreground">
-            Manage your autonomous trading agents.
+            Manage your autonomous AI agents.
           </p>
         </div>
         <Link href="/agents/new">
@@ -118,7 +118,7 @@ export default function AgentsPage() {
           </div>
           <h3 className="text-lg font-medium">No agents yet</h3>
           <p className="mt-2 text-sm text-muted-foreground">
-            Create your first agent to start automated trading.
+            Create your first agent to get started with automation.
           </p>
           <Link href="/agents/new">
             <Button className="mt-6 gap-2">

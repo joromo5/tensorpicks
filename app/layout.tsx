@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "TensorPicks",
-  description: "AI-powered trading agents platform",
+  description: "AI-powered autonomous agents platform",
 };
 
 export default function RootLayout({

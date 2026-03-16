@@ -6,8 +6,8 @@ export default function Home() {
       <div className="flex flex-col items-center gap-4 text-center">
         <h1 className="text-5xl font-bold tracking-tight">TensorPicks</h1>
         <p className="max-w-md text-lg text-muted-foreground">
-          AI-powered trading agents. Build, deploy, and monitor autonomous
-          strategies with confidence.
+          AI-powered autonomous agents. Build, deploy, and monitor intelligent
+          automations with confidence.
         </p>
       </div>
 
