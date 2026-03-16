@@ -11,3 +11,10 @@ dist/
 venv/
 data/
 logs/
+
+# Next.js
+.next/
+out/
+node_modules/
+tsconfig.tsbuildinfo
+*.tsbuildinfo
