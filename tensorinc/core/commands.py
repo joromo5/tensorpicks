@@ -33,9 +33,12 @@ def start_command_listener():
     )
 
     def _handle(client: SocketModeClient, req: SocketModeRequest):
-        # Acknowledge immediately
+        # Acknowledge immediately with a visible response
         client.send_socket_mode_response(
-            SocketModeResponse(envelope_id=req.envelope_id)
+            SocketModeResponse(
+                envelope_id=req.envelope_id,
+                payload={"text": ":mag: Running business finder scan... hang tight."},
+            )
         )
 
         if req.type != "slash_commands":
@@ -64,8 +67,6 @@ def _run_idea(channel: str):
     """Run the Business Finder agent and post results to the requesting channel."""
     from tensorinc.core import slack
     from tensorinc.business_finder.agent import BusinessFinderAgent
-
-    slack.post(":mag: Running business finder scan... hang tight.", channel=channel)
 
     try:
         agent = BusinessFinderAgent()
