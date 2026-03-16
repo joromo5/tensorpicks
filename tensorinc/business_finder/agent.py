@@ -95,6 +95,7 @@ class BusinessFinderAgent(Agent):
             return
 
         self.log.info("Collected %d raw posts", len(posts))
+        slack.post(f":page_facing_up: Scraped {len(posts)} posts. Scoring with LLM...", channel=ch)
 
         # 3. Score all posts — returns top 10
         scored = score_batch(posts, top_n=10)
@@ -105,6 +106,7 @@ class BusinessFinderAgent(Agent):
 
         self.log.info("Scored %d ideas, top composite: %.1f",
                       len(scored), scored[0]["composite"])
+        slack.post(f":brain: Scored {len(scored)} ideas. Validating top 3...", channel=ch)
 
         # 4. Store in database
         stored = store_batch(scored)

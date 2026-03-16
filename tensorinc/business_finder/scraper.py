@@ -143,7 +143,7 @@ def _fetch_hackernews() -> list[dict]:
                 f"https://hacker-news.firebaseio.com/v0/{endpoint}.json",
                 timeout=10,
             )
-            story_ids = resp.json()[:30]
+            story_ids = resp.json()[:10]
 
             for sid in story_ids:
                 try:

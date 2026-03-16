@@ -132,7 +132,7 @@ def score_batch(posts: list[dict], top_n: int = 10) -> list[dict]:
 
     # Sort by heuristic composite and take top candidates for LLM scoring
     heuristic_scored.sort(key=lambda x: x[2], reverse=True)
-    candidates = heuristic_scored[:top_n * 2]  # 2x for buffer
+    candidates = heuristic_scored[:top_n]  # LLM-score only the top candidates
 
     log.info("Heuristic pass: %d posts → %d candidates for LLM scoring",
              len(posts), len(candidates))

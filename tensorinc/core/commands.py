@@ -65,10 +65,20 @@ def start_command_listener():
 
 def _run_idea(channel: str):
     """Run the Business Finder agent and post results to the requesting channel."""
-    from tensorinc.core import slack
+    from tensorinc.core import llm, slack
     from tensorinc.business_finder.agent import BusinessFinderAgent
 
     try:
+        # Pre-flight: check Ollama is reachable
+        if not llm.is_available():
+            slack.post(
+                ":x: Ollama is not reachable at "
+                f"`{settings.ollama_host}`. Start it first.",
+                channel=channel,
+            )
+            return
+
+        slack.post(":hourglass_flowing_sand: Scraping sources...", channel=channel)
         agent = BusinessFinderAgent()
         agent.run(channel=channel)
         slack.post(":white_check_mark: Business finder scan complete.", channel=channel)
