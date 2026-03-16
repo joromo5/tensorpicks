@@ -38,10 +38,7 @@ def main():
     scheduler = BlockingScheduler()
 
     # Register agents on their schedules
-    business_finder = BusinessFinderAgent()
-    cron = _parse_cron(settings.business_finder_schedule)
-    scheduler.add_job(business_finder.run, CronTrigger(**cron), id="business_finder")
-    log.info("Scheduled business_finder: %s", settings.business_finder_schedule)
+    # business_finder — no cron schedule; triggered on-demand via /idea slash command.
 
     local_outreach = LocalOutreachAgent()
     cron = _parse_cron(settings.local_outreach_schedule)
